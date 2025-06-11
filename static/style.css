@@ -62,17 +62,8 @@ p {
     color: #1c1e21;
 }
 
-#data-input {
-    min-height: 120px;
-    resize: vertical;
-    margin-bottom: 1rem;
-}
-
-#data-input:focus {
-    outline: none;
-    border-color: #1877f2;
-    box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
-}
+#data-input { min-height: 120px; resize: vertical; margin-bottom: 1rem; }
+#data-input:focus { outline: none; border-color: #1877f2; box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2); }
 
 #analyze-button, #schedule-button, #final-report-button {
     width: 100%;
@@ -92,77 +83,61 @@ p {
 #schedule-button { background: linear-gradient(to right, #1877f2, #3b5998); }
 #final-report-button { background: linear-gradient(to right, #f44336, #e57373); }
 
-#analyze-button:hover, #schedule-button:hover, #final-report-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
+button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
+button:disabled { background: #cccccc !important; cursor: not-allowed !important; transform: none !important; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important; }
 
-button:disabled {
-    background: #cccccc !important;
-    cursor: not-allowed !important;
-    transform: none !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-}
-
-.arrow-down {
-    font-size: 2.5rem;
-    color: #8a8d91;
-    margin-bottom: 1.5rem;
-    font-weight: 200;
-}
-
-#loader, #schedule-loader, #final-report-loader {
-    border: 6px solid #f3f3f3;
-    border-radius: 50%;
-    border-top: 6px solid #1877f2;
-    width: 30px;
-    height: 30px;
-    animation: spin 1s linear infinite;
-    margin: 20px auto;
-}
-
+.arrow-down { font-size: 2.5rem; color: #8a8d91; margin-bottom: 1.5rem; font-weight: 200; }
+#loader, #schedule-loader, #final-report-loader { border: 6px solid #f3f3f3; border-radius: 50%; border-top: 6px solid #1877f2; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
 .hidden { display: none; }
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 #result-container, #schedule-section, #final-report-section { margin-top: 2rem; }
 #schedule-section, #final-report-section { border-top: 1px solid #dddfe2; padding-top: 2rem; }
 #schedule-result-container, #final-report-container { margin-top: 1.5rem; display: none; }
 
-#final-report-output {
-    background-color: #fff;
-    border: none;
-    padding: 0;
+.report-header { display: flex; justify-content: space-between; align-items: center; }
+#pdf-button {
+    width: auto;
+    font-size: 0.9rem;
+    font-weight: normal;
+    padding: 8px 12px;
+    background: #6c757d;
+    margin-bottom: 0;
 }
 
-#final-report-output table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 2rem;
-}
+#final-report-output { background-color: #fff; border: none; padding: 0; }
+#final-report-output table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+#final-report-output th, #final-report-output td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+#final-report-output th { background-color: #f2f2f2; font-weight: bold; }
+#final-report-output h3 { margin-top: 2rem; color: #1c1e21; border-bottom: 2px solid #f0f2f5; padding-bottom: 0.5rem; }
 
-#final-report-output th, #final-report-output td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
+/* ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ PDF 인쇄를 위한 스타일 추가 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ */
+@media print {
+    /* 화면의 모든 요소를 기본적으로 숨김 */
+    body * {
+        visibility: hidden;
+    }
+    /* 리포트 컨테이너와 그 안의 내용만 보이도록 설정 */
+    #final-report-container, #final-report-container * {
+        visibility: visible;
+    }
+    /* 리포트가 인쇄 페이지에 꽉 차도록 위치 조정 */
+    #final-report-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+    }
+    /* 인쇄 시에는 제목 옆의 PDF 버튼을 숨김 */
+    .report-header h2 {
+        border-bottom: none;
+    }
+    .report-header #pdf-button {
+        display: none;
+    }
 }
-
-#final-report-output th {
-    background-color: #f2f2f2;
-    font-weight: bold;
-}
-
-#final-report-output h3 {
-    margin-top: 2rem;
-    color: #1c1e21;
-    border-bottom: 2px solid #f0f2f5;
-    padding-bottom: 0.5rem;
-}
-
-#final-report-output ul {
-    list-style-type: disc;
-    padding-left: 20px;
-}
+/* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ PDF 인쇄를 위한 스타일 추가 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
