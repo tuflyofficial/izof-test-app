@@ -26,7 +26,6 @@ def after_request(response):
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    # ... 이전과 동일 ...
     if not model: return jsonify({"error": "API 키 미설정"}), 500
     data = request.json
     if not data or 'text' not in data: return jsonify({"error": "데이터 미전송"}), 400
@@ -52,7 +51,6 @@ def analyze():
 
 @app.route('/generate_schedule', methods=['POST'])
 def generate_schedule():
-    # ... 이전과 동일 ...
     if not model: return jsonify({"error": "API 키 미설정"}), 500
     data = request.json
     if not data or 'analysis_text' not in data: return jsonify({"error": "분석 결과 데이터 없음"}), 400
@@ -92,21 +90,18 @@ def generate_schedule():
         return jsonify({"result": response.text})
     except Exception as e: return jsonify({"error": f"스케줄 생성 오류: {e}"}), 500
 
-# =======================================================
-# ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 최종 리포트 생성을 위한 새로운 라우트 추가 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 @app.route('/summarize_all', methods=['POST'])
 def summarize_all():
-    if not model:
-        return jsonify({"error": "서버의 API 키가 설정되지 않았습니다."}), 500
-
+    if not model: return jsonify({"error": "API 키 미설정"}), 500
     data = request.json
     if not all(k in data for k in ['raw_data', 'analysis_text', 'schedule_text']):
-        return jsonify({"error": "리포트 생성을 위한 데이터가 부족합니다."}), 400
+        return jsonify({"error": "리포트 생성을 위한 데이터 부족"}), 400
 
     raw_data = data['raw_data']
     analysis_text = data['analysis_text']
     schedule_text = data['schedule_text']
 
+    # ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 로고 추가를 위해 프롬프트 수정 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
     prompt = f"""
     당신은 모든 정보를 종합하여 깔끔한 HTML 보고서를 만드는 전문가입니다.
     아래에 주어진 3가지 데이터(원본 데이터, 1차 분석 텍스트, 2차 훈련 계획 텍스트)를 사용하여 하나의 완성된 HTML 리포트를 생성해주세요.
@@ -125,6 +120,8 @@ def summarize_all():
 
     **지시사항:**
 
+    0.  **로고 추가:** 리포트의 가장 처음에 로고 이미지를 추가하세요. 로고 HTML 코드는 다음과 같습니다. `<img src="/static/logo3.png" alt="Tufly Logo" style="width:150px; margin-bottom:20px; display:block; margin-left:auto; margin-right:auto;">`
+
     1.  **검진 결과표 생성:** '1. 원본 데이터'를 파싱하여 `<table>` 형식의 HTML 표를 만드세요.
         * 표의 헤더는 '항목', '이상적 상태', '현재 상태'입니다.
 
@@ -138,17 +135,15 @@ def summarize_all():
         * 멘탈 훈련 제안의 경우, 제안된 훈련들을 14일 동안 적절히 분배하여 표를 채우세요. (예: 1-3일차 명상, 4일차 휴식, 5-7일차 긍정 확언...)
         * 제공된 훈련 계획이 7일 분량인 경우, 나머지 8~14일은 '휴식', '자유 훈련', '주간 점검' 등으로 채워서 14일짜리 표를 완성하세요.
     """
+    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 로고 추가를 위해 프롬프트 수정 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
     try:
         response = model.generate_content(prompt)
-        # Gemini가 생성한 텍스트에서 ```html 과 ``` 를 제거 (가끔 포함될 수 있음)
         clean_html = re.sub(r'```html\n|```', '', response.text)
         return jsonify({"result": clean_html})
     except Exception as e:
         print(f"Gemini API 호출 중 오류 발생: {e}")
-        return jsonify({"error": f"리포트 생성 중 오류가 발생했습니다: {e}"}), 500
-# ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 최종 리포트 생성을 위한 새로운 라우트 추가 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-# =======================================================
+        return jsonify({"error": f"리포트 생성 오류: {e}"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
