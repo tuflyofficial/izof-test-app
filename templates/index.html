@@ -9,7 +9,6 @@
 <body>
     <div class="container">
         <h1>IZOF 기반 심리 분석 🧠</h1>
-
         <p>
             이전 검사 페이지에서 복사한 결과를 아래 칸에 붙여넣은 후 '분석하기' 버튼을 누르세요.<br>
             아직 결과를 복사하지 않으셨다면, 먼저 검사 결과 페이지에서 '결과 복사' 버튼을 눌러주세요.
@@ -17,17 +16,24 @@
         <p class="example-format">예시: 항목[Tab]이상적 상태[Tab]현재 상태<br>헌신, 집념    9   6</p>
 
         <textarea id="data-input" rows="10" placeholder="이곳에 복사한 검사 결과를 붙여넣으세요."></textarea>
-
         <button id="analyze-button">분석하기</button>
 
         <div class="arrow-down">↓</div>
-
         <div id="loader" class="hidden"></div>
 
         <div id="result-container">
             <h2>분석 결과</h2>
             <div id="result-output">
                 <p>분석 결과가 여기에 표시됩니다.</p>
+            </div>
+        </div>
+
+        <div id="schedule-section" class="hidden">
+            <button id="schedule-button">맞춤 훈련 스케줄 제안받기</button>
+            <div id="schedule-loader" class="hidden"></div>
+            <div id="schedule-result-container">
+                <h2>훈련 계획</h2>
+                <div id="schedule-output"></div>
             </div>
         </div>
     </div>
