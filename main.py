@@ -94,49 +94,41 @@ def generate_schedule():
 def summarize_all():
     if not model: return jsonify({"error": "API 키 미설정"}), 500
     data = request.json
-    if not all(k in data for k in ['raw_data', 'analysis_text', 'schedule_text']):
+    if not all(k in data for k in ['raw_data', 'schedule_text']):
         return jsonify({"error": "리포트 생성을 위한 데이터 부족"}), 400
 
     raw_data = data['raw_data']
-    analysis_text = data['analysis_text']
     schedule_text = data['schedule_text']
 
-    # ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 로고 추가를 위해 프롬프트 수정 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+    # ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ '상세 분석' 제외 및 로고 추가 프롬프트 수정 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
     prompt = f"""
     당신은 모든 정보를 종합하여 깔끔한 HTML 보고서를 만드는 전문가입니다.
-    아래에 주어진 3가지 데이터(원본 데이터, 1차 분석 텍스트, 2차 훈련 계획 텍스트)를 사용하여 하나의 완성된 HTML 리포트를 생성해주세요.
+    아래에 주어진 2가지 데이터(원본 데이터, 훈련 계획 텍스트)를 사용하여 하나의 완성된 HTML 리포트를 생성해주세요.
     **결과는 오직 HTML 코드만 포함해야 하며, 다른 설명은 절대 추가하지 마세요.**
 
     --- 1. 원본 데이터 ---
     {raw_data}
 
-    --- 2. 1차 분석 텍스트 ---
-    {analysis_text}
-
-    --- 3. 2차 훈련 계획 텍스트 ---
+    --- 2. 훈련 계획 텍스트 ---
     {schedule_text}
 
     ---
 
     **지시사항:**
 
-    0.  **로고 추가:** 리포트의 가장 처음에 로고 이미지를 추가하세요. 로고 HTML 코드는 다음과 같습니다. `<img src="/static/logo3.png" alt="Tufly Logo" style="width:150px; margin-bottom:20px; display:block; margin-left:auto; margin-right:auto;">`
+    1.  **로고 추가:** 리포트의 가장 처음에 로고 이미지를 추가하세요. 로고 HTML 코드는 다음과 같습니다. `<img src="/static/logo3.png" alt="Tufly Logo" style="width:150px; margin-bottom:20px; display:block; margin-left:auto; margin-right:auto;">`
 
-    1.  **검진 결과표 생성:** '1. 원본 데이터'를 파싱하여 `<table>` 형식의 HTML 표를 만드세요.
+    2.  **검진 결과표 생성:** '1. 원본 데이터'를 파싱하여 `<table>` 형식의 HTML 표를 만드세요.
+        * 표의 제목은 `<h3>📊 검진 결과표</h3>` 입니다.
         * 표의 헤더는 '항목', '이상적 상태', '현재 상태'입니다.
 
-    2.  **상세 분석 정리:** '2. 1차 분석 텍스트'의 내용을 보기 쉽게 정리하세요.
-        * `### 📊 핵심 요약`과 `### 📝 상세 분석` 같은 제목은 `<h3>` 태그로 만드세요.
-        * `*` 로 시작하는 목록은 `<ul>`과 `<li>` 태그를 사용해 리스트로 만드세요.
-        * `**1. 데이터 영역**` 같은 소제목은 `<strong>` 태그를 사용해 강조하세요.
-
-    3.  **14일 훈련 계획표 생성:** '3. 2차 훈련 계획 텍스트'의 내용을 14일짜리 `<table>` 형식의 HTML 표로 만드세요.
+    3.  **14일 훈련 계획표 생성:** '2. 훈련 계획 텍스트'의 내용을 14일짜리 `<table>` 형식의 HTML 표로 만드세요.
+        * 표의 제목은 `<h3>📅 14일 맞춤 훈련 계획</h3>` 입니다.
         * 표의 헤더는 '일차', '훈련 내용'입니다.
-        * 멘탈 훈련 제안의 경우, 제안된 훈련들을 14일 동안 적절히 분배하여 표를 채우세요. (예: 1-3일차 명상, 4일차 휴식, 5-7일차 긍정 확언...)
         * 제공된 훈련 계획이 7일 분량인 경우, 나머지 8~14일은 '휴식', '자유 훈련', '주간 점검' 등으로 채워서 14일짜리 표를 완성하세요.
     """
-    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 로고 추가를 위해 프롬프트 수정 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
+    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ '상세 분석' 제외 및 로고 추가 프롬프트 수정 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    
     try:
         response = model.generate_content(prompt)
         clean_html = re.sub(r'```html\n|```', '', response.text)
