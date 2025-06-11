@@ -51,7 +51,7 @@ p {
     box-sizing: border-box;
     font-size: 1rem;
     min-height: 120px;
-    resize: vertical; /* 사용자가 세로 크기만 조절할 수 있도록 함 */
+    resize: vertical;
 }
 
 #data-input:focus {
@@ -130,7 +130,74 @@ p {
     border-radius: 6px;
     line-height: 1.7;
     box-sizing: border-box;
-    white-space: pre-wrap; /* Gemini 응답의 줄바꿈과 공백을 유지 */
+    white-space: pre-wrap;
+    border: 1px solid #dddfe2;
+    color: #1c1e21;
+}
+
+/* Schedule Section Styles */
+#schedule-section {
+    margin-top: 2rem;
+    border-top: 1px solid #dddfe2;
+    padding-top: 2rem;
+}
+
+#schedule-button {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(to right, #1877f2, #3b5998);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#schedule-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#schedule-button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#schedule-loader {
+    border: 6px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 6px solid #1877f2;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+#schedule-result-container {
+    margin-top: 1.5rem;
+    display: none; /* Initially hidden */
+}
+
+#schedule-result-container h2 {
+    color: #1c1e21;
+    margin-bottom: 1rem;
+}
+
+#schedule-output {
+    width: 100%;
+    text-align: left;
+    background-color: #f0f2f5;
+    padding: 1.5rem;
+    border-radius: 6px;
+    line-height: 1.7;
+    box-sizing: border-box;
+    white-space: pre-wrap;
     border: 1px solid #dddfe2;
     color: #1c1e21;
 }
