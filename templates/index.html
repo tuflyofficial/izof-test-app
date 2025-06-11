@@ -41,11 +41,14 @@
             <button id="final-report-button">모든 결과 종합 리포트 만들기</button>
             <div id="final-report-loader" class="hidden"></div>
             <div id="final-report-container">
-                <h2>종합 리포트</h2>
+                <div class="report-header">
+                    <h2>종합 리포트</h2>
+                    <button id="pdf-button" class="hidden">🖨️ PDF로 저장</button>
+                </div>
                 <div id="final-report-output"></div>
             </div>
         </div>
-        </div>
+    </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
