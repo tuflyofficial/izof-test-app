@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const finalReportLoader = document.getElementById('final-report-loader');
     const finalReportContainer = document.getElementById('final-report-container');
     const finalReportOutput = document.getElementById('final-report-output');
+    const pdfButton = document.getElementById('pdf-button'); // PDF 버튼 선택
 
     let initialAnalysisResult = "";
     let scheduleResult = "";
@@ -30,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         analyzeButton.disabled = true;
         scheduleSection.classList.add('hidden');
         finalReportSection.classList.add('hidden');
+        pdfButton.classList.add('hidden');
 
         try {
             const response = await fetch('/analyze', {
@@ -57,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         scheduleLoader.classList.remove('hidden');
         scheduleButton.disabled = true;
         scheduleResultContainer.style.display = 'none';
+        pdfButton.classList.add('hidden');
 
         try {
             const response = await fetch('/generate_schedule', {
@@ -80,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. 최종 리포트 만들기
     finalReportButton.addEventListener('click', async () => {
-        if (!dataInput.value || !initialAnalysisResult || !scheduleResult) {
+        if (!dataInput.value || !scheduleResult) {
             alert('모든 분석 단계를 먼저 완료해주세요.');
             return;
         }
@@ -88,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         finalReportLoader.classList.remove('hidden');
         finalReportButton.disabled = true;
         finalReportContainer.style.display = 'none';
+        pdfButton.classList.add('hidden');
 
         try {
             const response = await fetch('/summarize_all', {
@@ -95,19 +99,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     raw_data: dataInput.value,
-                    analysis_text: initialAnalysisResult,
                     schedule_text: scheduleResult
                 }),
             });
             if (!response.ok) throw new Error((await response.json()).error || '서버 오류');
             const data = await response.json();
-            finalReportOutput.innerHTML = data.result; // 결과가 HTML이므로 .replace 불필요
+            finalReportOutput.innerHTML = data.result;
             finalReportContainer.style.display = 'block';
+            pdfButton.classList.remove('hidden'); // PDF 버튼 보이기
         } catch (error) {
             finalReportOutput.innerHTML = `<p style="color: red;">리포트 생성 실패: ${error.message}</p>`;
         } finally {
             finalReportLoader.classList.add('hidden');
             finalReportButton.disabled = false;
         }
+    });
+
+    // 4. PDF로 저장 버튼 이벤트
+    pdfButton.addEventListener('click', () => {
+        window.print();
     });
 });
