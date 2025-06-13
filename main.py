@@ -54,18 +54,17 @@ def analyze():
         return jsonify({"result": response.text})
     except Exception as e: return jsonify({"error": f"분석 오류: {e}"}), 500
 
-# ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 프롬프트가 대폭 수정된 generate_schedule 함수 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 @app.route('/generate_schedule', methods=['POST'])
 def generate_schedule():
     if not model: return jsonify({"error": "API 키 미설정"}), 500
     data = request.json
-    # 이제 raw_data도 함께 받음
     if not all(k in data for k in ['analysis_text', 'raw_data']):
         return jsonify({"error": "분석 데이터가 부족합니다."}), 400
 
     analysis_text = data['analysis_text']
     raw_data = data['raw_data']
 
+    # ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ '터플라이' -> '터플리'로 오타 수정 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
     prompt = f"""
     당신은 선수의 약점을 보완하기 위한 실행 계획을 제시하는 전문 코치입니다.
     아래에 주어진 **'1. 원본 데이터'**를 보고 주제('멘탈', '체력', '기술')를 명확히 판단한 후, '2. 1차 분석 결과'를 참고하여 구체적인 해결책을 제안하세요.
@@ -81,7 +80,7 @@ def generate_schedule():
     **지시사항:**
     1.  **'1. 원본 데이터'**의 항목들을 보고 주제를 판단하세요.
     2.  판단된 주제에 따라 아래 A, B 형식 중 하나로만 답변해야 합니다.
-    3.  답변에 "터플라이 심리상담" 이라는 텍스트가 포함될 경우, 반드시 `<a href="https://www.tufly.co.kr/" target="_blank">터플라이 심리상담</a>` 와 같이 하이퍼링크를 삽입해야 합니다.
+    3.  답변에 "터플리 심리상담" 이라는 텍스트가 포함될 경우, 반드시 `<a href="https://www.tufly.co.kr/" target="_blank">터플리 심리상담</a>` 와 같이 하이퍼링크를 삽입해야 합니다.
 
     ---
     **A) 주제가 '멘탈'일 경우:**
@@ -94,7 +93,7 @@ def generate_schedule():
 
     **2. 전문가의 도움이 필요할 때:**
     * 혼자서 해결하기 어려운 문제라면, 주저하지 말고 전문가의 도움을 받는 것이 중요합니다.
-    * 전문적인 심리 상담과 코칭은 **<a href="https://www.tufly.co.kr/" target="_blank">터플라이 심리상담</a>**을 통해 찾을 수 있습니다.
+    * 전문적인 심리 상담과 코칭은 **<a href="https://www.tufly.co.kr/" target="_blank">터플리 심리상담</a>**을 통해 찾을 수 있습니다.
 
     ---
     **B) 주제가 '체력' 또는 '기술'일 경우:**
@@ -112,13 +111,13 @@ def generate_schedule():
     * **6일차:** (구체적인 훈련 내용)
     * **7일차:** 휴식 및 주간 점검
 
-    **멘탈 팁:** 기술/체력 훈련 시에도 심리적 안정은 중요합니다. 훈련 중 어려운 순간에는 심호흡을 통해 평정심을 유지하는 연습을 병행해보세요. 더 깊은 도움이 필요하다면 **<a href="https://www.tufly.co.kr/" target="_blank">터플라이 심리상담</a>**의 문을 두드려보는 것도 좋은 방법입니다.
+    **멘탈 팁:** 기술/체력 훈련 시에도 심리적 안정은 중요합니다. 훈련 중 어려운 순간에는 심호흡을 통해 평정심을 유지하는 연습을 병행해보세요. 더 깊은 도움이 필요하다면 **<a href="https://www.tufly.co.kr/" target="_blank">터플리 심리상담</a>**의 문을 두드려보는 것도 좋은 방법입니다.
     """
+    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ '터플라이' -> '터플리'로 오타 수정 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
     try:
         response = model.generate_content(prompt)
         return jsonify({"result": response.text})
     except Exception as e: return jsonify({"error": f"스케줄 생성 오류: {e}"}), 500
-# ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 프롬프트가 대폭 수정된 generate_schedule 함수 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 @app.route('/summarize_all', methods=['POST'])
 def summarize_all():
