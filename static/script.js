@@ -1,98 +1,95 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    const reportContent = document.getElementById('report-content');
-    const pdfButton = document.getElementById('pdf-button');
-    const loader = document.getElementById('final-report-loader');
+document.addEventListener('DOMContentLoaded', () => {
+    // 요소 선택
+    const analyzeButton = document.getElementById('analyze-button');
+    const dataInput = document.getElementById('data-input');
+    const resultOutput = document.getElementById('result-output');
+    const loader = document.getElementById('loader');
 
-    // 1. 세션 스토리지에서 데이터 가져오기
-    const reportDataString = sessionStorage.getItem('reportData');
+    const scheduleSection = document.getElementById('schedule-section');
+    const scheduleButton = document.getElementById('schedule-button');
+    const scheduleLoader = document.getElementById('schedule-loader');
+    const scheduleResultContainer = document.getElementById('schedule-result-container');
+    const scheduleOutput = document.getElementById('schedule-output');
+    
+    const finalReportSection = document.getElementById('final-report-section');
+    const finalReportButton = document.getElementById('final-report-button');
 
-    if (!reportDataString) {
-        reportContent.innerHTML = '<p style="color: red;">리포트를 생성할 데이터가 없습니다. 이전 페이지로 돌아가 분석을 다시 시작해주세요.</p>';
-        return;
-    }
+    let initialAnalysisResult = "";
+    let scheduleResult = "";
 
-    // 사용 후 즉시 데이터 삭제
-    sessionStorage.removeItem('reportData');
-
-    try {
-        const reportData = JSON.parse(reportDataString);
-
-        // =================================================================
-        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 로직 오류를 수정한 AI Insight 생성 코드 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+    // 1. 분석하기
+    analyzeButton.addEventListener('click', async () => {
+        const inputText = dataInput.value.trim();
+        if (!inputText) { alert('데이터를 입력해주세요.'); return; }
         
-        const highNeedItems = [];
-        const lines = reportData.raw_data.trim().split('\n');
-        
-        // 훈련 요구 점수가 2인 항목들을 저장할 배열
-        const midNeedItems = [];
+        loader.classList.remove('hidden');
+        analyzeButton.disabled = true;
+        scheduleSection.classList.add('hidden');
+        finalReportSection.classList.add('hidden');
 
-        lines.forEach(line => {
-            const parts = line.trim().split(/\s+/);
-            if (parts.length >= 3) {
-                const itemName = parts.slice(0, parts.length - 2).join(' ');
-                const ideal = parseInt(parts[parts.length - 2], 10);
-                const current = parseInt(parts[parts.length - 1], 10);
-
-                if (!isNaN(ideal) && !isNaN(current)) {
-                    const score = ideal - current;
-                    // 점수가 3점 이상인 항목을 highNeedItems에 추가
-                    if (score >= 3) {
-                        highNeedItems.push({ name: itemName, score: score });
-                    } 
-                    // 점수가 2점인 항목을 midNeedItems에 추가
-                    else if (score === 2) {
-                        midNeedItems.push({ name: itemName, score: score });
-                    }
-                }
-            }
-        });
-
-        let aiInsightHtml = '';
-
-        // 1순위: 점수가 3점 이상인 항목이 하나라도 있는 경우
-        if (highNeedItems.length > 0) {
-            aiInsightHtml = '<ul>';
-            highNeedItems.forEach(item => {
-                aiInsightHtml += `<li><strong>'${item.name}'</strong> 항목은 훈련 요구 점수가 ${item.score}점으로, 약점 보완을 위한 집중 훈련이 필요합니다.</li>`;
+        try {
+            const response = await fetch('/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: inputText }),
             });
-            aiInsightHtml += '</ul>';
-        } 
-        // 2순위: 3점 이상은 없지만, 2점인 항목이 있는 경우
-        else if (midNeedItems.length > 0) {
-            aiInsightHtml = `<p>전반적으로 좋은 균형을 유지하고 있지만, 일부 항목에서 목표치와 약간의 차이가 있습니다. 꾸준한 관리를 통해 더 나은 상태를 만들 수 있습니다.</p>`;
-        } 
-        // 3순위: 모든 점수가 1점 이하인 최적의 경우
-        else {
-            aiInsightHtml = `<p>현재 모든 항목이 목표치에 근접해 있어, 심리적/신체적으로 매우 안정적인 최적 IZOF 상태에 있습니다. 현재 상태를 유지하며 꾸준히 훈련하는 것을 추천합니다.</p>`;
+            if (!response.ok) throw new Error((await response.json()).error || '서버 오류');
+            const data = await response.json();
+            initialAnalysisResult = data.result;
+            resultOutput.innerHTML = initialAnalysisResult.replace(/\n/g, '<br>');
+            scheduleSection.classList.remove('hidden');
+        } catch (error) {
+            resultOutput.innerHTML = `<p style="color: red;">분석 실패: ${error.message}</p>`;
+        } finally {
+            loader.classList.add('hidden');
+            analyzeButton.disabled = false;
         }
-        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 로직 오류를 수정한 AI Insight 생성 코드 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-        // =================================================================
+    });
 
+    // 2. 스케줄 제안받기
+    scheduleButton.addEventListener('click', async () => {
+        if (!initialAnalysisResult) { alert('먼저 데이터 분석을 진행해주세요.'); return; }
 
-        // 2. 서버에 최종 리포트(HTML) 요청
-        const response = await fetch('/summarize_all', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                raw_data: reportData.raw_data,
-                schedule_text: reportData.schedule_text,
-                ai_insight_html: aiInsightHtml 
-            }),
-        });
+        scheduleLoader.classList.remove('hidden');
+        scheduleButton.disabled = true;
+        
+        try {
+            const response = await fetch('/generate_schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ analysis_text: initialAnalysisResult }),
+            });
+            if (!response.ok) throw new Error((await response.json()).error || '서버 오류');
+            const data = await response.json();
+            scheduleResult = data.result;
+            scheduleOutput.innerHTML = scheduleResult.replace(/\n/g, '<br>');
+            scheduleResultContainer.style.display = 'block';
+            finalReportSection.classList.remove('hidden');
+        } catch (error) {
+            scheduleOutput.innerHTML = `<p style="color: red;">스케줄 생성 실패: ${error.message}</p>`;
+        } finally {
+            scheduleLoader.classList.add('hidden');
+            scheduleButton.disabled = false;
+        }
+    });
 
-        if (!response.ok) {
-            throw new Error((await response.json()).error || '서버 오류');
+    // 3. 최종 리포트 새 탭으로 열기
+    finalReportButton.addEventListener('click', () => {
+        if (!dataInput.value || !scheduleResult) {
+            alert('모든 분석 단계를 먼저 완료해주세요.');
+            return;
         }
 
-        const data = await response.json();
-        reportContent.innerHTML = data.result;
+        // 리포트 생성에 필요한 데이터를 객체로 만듦
+        const reportData = {
+            raw_data: dataInput.value,
+            schedule_text: scheduleResult
+        };
 
-    } catch (error) {
-        reportContent.innerHTML = `<p style="color: red;">리포트 생성에 실패했습니다: ${error.message}</p>`;
-    }
+        // 데이터를 JSON 문자열로 변환하여 세션 스토리지에 저장
+        sessionStorage.setItem('reportData', JSON.stringify(reportData));
 
-    // 4. PDF 저장 버튼에 프린트 기능 추가
-    pdfButton.addEventListener('click', () => {
-        window.print();
+        // '/report' 경로를 새 탭으로 열기
+        window.open('/report', '_blank');
     });
 });
