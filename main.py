@@ -19,11 +19,9 @@ except Exception as e:
 def index():
     return render_template('index.html')
 
-# ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 리포트 전용 페이지를 위한 라우트 추가 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 @app.route('/report')
 def report():
     return render_template('report.html')
-# ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 리포트 전용 페이지를 위한 라우트 추가 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 @app.after_request
 def after_request(response):
@@ -100,24 +98,51 @@ def generate_schedule():
 
 @app.route('/summarize_all', methods=['POST'])
 def summarize_all():
-    # ... 이전과 동일 (상세분석 제외된 버전) ...
     if not model: return jsonify({"error": "API 키 미설정"}), 500
     data = request.json
     if not all(k in data for k in ['raw_data', 'schedule_text']): return jsonify({"error": "리포트 데이터 부족"}), 400
+
     raw_data = data['raw_data']
     schedule_text = data['schedule_text']
+
+    # ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 최종 리포트 생성을 위한 프롬프트 대폭 수정 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
     prompt = f"""
-    당신은 모든 정보를 종합하여 깔끔한 HTML 보고서를 만드는 전문가입니다. 아래 주어진 2가지 데이터(원본 데이터, 훈련 계획 텍스트)를 사용하여 하나의 완성된 HTML 리포트를 생성해주세요. **결과는 오직 HTML 코드만 포함해야 하며, 다른 설명은 절대 추가하지 마세요.**
+    당신은 데이터를 분석하여 통찰력 있는 HTML 보고서를 만드는 전문가입니다.
+    아래 주어진 데이터(원본 데이터, 훈련 계획 텍스트)를 사용하여 하나의 완성된 HTML 리포트를 생성해주세요.
+    **결과는 오직 HTML 코드만 포함해야 하며, 다른 설명은 절대 추가하지 마세요.**
+
     --- 1. 원본 데이터 ---
     {raw_data}
+
     --- 2. 훈련 계획 텍스트 ---
     {schedule_text}
+
     ---
+
     **지시사항:**
-    1.  **로고 추가:** 리포트의 가장 처음에 로고 이미지를 추가하세요. 로고 HTML 코드는 다음과 같습니다. `<img src="/static/logo3.png" alt="Tufly Logo" style="width:150px; margin-bottom:20px; display:block; margin-left:auto; margin-right:auto;">`
-    2.  **검진 결과표 생성:** '1. 원본 데이터'를 파싱하여 `<table>` 형식의 HTML 표를 만드세요. 표의 제목은 `<h3>📊 검진 결과표</h3>` 입니다. 표의 헤더는 '항목', '이상적 상태', '현재 상태'입니다.
-    3.  **14일 훈련 계획표 생성:** '2. 훈련 계획 텍스트'의 내용을 14일짜리 `<table>` 형식의 HTML 표로 만드세요. 표의 제목은 `<h3>📅 14일 맞춤 훈련 계획</h3>` 입니다. 표의 헤더는 '일차', '훈련 내용'입니다. 제공된 훈련 계획이 7일 분량인 경우, 나머지 8~14일은 '휴식', '자유 훈련', '주간 점검' 등으로 채워서 14일짜리 표를 완성하세요.
+
+    1.  **헤더 생성:** 리포트의 가장 처음에 로고와 그 아래에 리포트 제목을 추가하세요.
+        * 로고: `<img src="/static/logo3.png" alt="Tufly Logo" style="width:150px; display:block; margin: 0 auto 10px auto;">`
+        * 제목: `<h2 style="text-align:center; margin-bottom:30px;">종합 리포트</h2>`
+
+    2.  **검진 결과표 및 AI Insight 생성:**
+        * 먼저 `<h3>📊 검진 결과표</h3>` 제목을 추가하세요.
+        * '1. 원본 데이터'를 한 줄씩 파싱하여 다음 작업을 수행하세요:
+            a. '이상적 상태'에서 '현재 상태'를 빼서 '훈련 요구 점수'를 계산합니다.
+            b. '항목', '이상적 상태', '현재 상태', '훈련 요구 점수' 4개의 열을 가진 `<table>` 형식의 HTML 표를 만듭니다.
+        * 표 바로 아래에 `<h3>💡 AI Insight</h3>` 제목을 추가하세요.
+        * 계산된 '훈련 요구 점수'를 바탕으로 아래 로직에 따라 분석 문장을 생성합니다:
+            - **만약, 모든 '훈련 요구 점수'가 1점 이하라면:** `<p>현재 모든 항목이 목표치에 근접해 있어, 심리적/신체적으로 매우 안정적인 최적 IZOF 상태에 있습니다. 현재 상태를 유지하며 꾸준히 훈련하는 것을 추천합니다.</p>` 문장을 생성합니다.
+            - **그렇지 않다면:** '훈련 요구 점수'가 3점 이상인 항목들을 찾아서, `<ul><li><strong>'{항목명}'</strong> 항목은 훈련 요구 점수가 {점수}점으로, 약점 보완을 위한 집중 훈련이 필요합니다.</li></ul>` 형식으로 목록을 만듭니다. 3점 이상인 항목이 여러 개면 `<li>`를 여러 개 만듭니다.
+
+    3.  **14일 훈련 계획표 생성:**
+        * `<h3>📅 14일 맞춤 훈련 계획</h3>` 제목을 추가하세요.
+        * '2. 훈련 계획 텍스트'의 내용을 14일짜리 `<table>` 형식의 HTML 표로 변환합니다.
+        * 표의 헤더는 '일차', '훈련 내용'입니다.
+        * 제공된 훈련 계획이 7일 분량이면, 나머지 8~14일은 '휴식', '자유 훈련', '주간 점검' 등으로 적절히 채워 14일짜리 표를 완성하세요.
     """
+    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 최종 리포트 생성을 위한 프롬프트 대폭 수정 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    
     try:
         response = model.generate_content(prompt)
         clean_html = re.sub(r'```html\n|```', '', response.text)
