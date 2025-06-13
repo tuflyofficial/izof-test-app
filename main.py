@@ -19,6 +19,12 @@ except Exception as e:
 def index():
     return render_template('index.html')
 
+# ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ 리포트 전용 페이지를 위한 라우트 추가 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+@app.route('/report')
+def report():
+    return render_template('report.html')
+# ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ 리포트 전용 페이지를 위한 라우트 추가 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
 @app.after_request
 def after_request(response):
     response.headers.pop('X-Frame-Options', None)
@@ -26,6 +32,7 @@ def after_request(response):
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
+    # ... 이전과 동일 ...
     if not model: return jsonify({"error": "API 키 미설정"}), 500
     data = request.json
     if not data or 'text' not in data: return jsonify({"error": "데이터 미전송"}), 400
@@ -51,6 +58,7 @@ def analyze():
 
 @app.route('/generate_schedule', methods=['POST'])
 def generate_schedule():
+    # ... 이전과 동일 ...
     if not model: return jsonify({"error": "API 키 미설정"}), 500
     data = request.json
     if not data or 'analysis_text' not in data: return jsonify({"error": "분석 결과 데이터 없음"}), 400
@@ -92,43 +100,24 @@ def generate_schedule():
 
 @app.route('/summarize_all', methods=['POST'])
 def summarize_all():
+    # ... 이전과 동일 (상세분석 제외된 버전) ...
     if not model: return jsonify({"error": "API 키 미설정"}), 500
     data = request.json
-    if not all(k in data for k in ['raw_data', 'schedule_text']):
-        return jsonify({"error": "리포트 생성을 위한 데이터 부족"}), 400
-
+    if not all(k in data for k in ['raw_data', 'schedule_text']): return jsonify({"error": "리포트 데이터 부족"}), 400
     raw_data = data['raw_data']
     schedule_text = data['schedule_text']
-
-    # ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ '상세 분석' 제외 및 로고 추가 프롬프트 수정 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
     prompt = f"""
-    당신은 모든 정보를 종합하여 깔끔한 HTML 보고서를 만드는 전문가입니다.
-    아래에 주어진 2가지 데이터(원본 데이터, 훈련 계획 텍스트)를 사용하여 하나의 완성된 HTML 리포트를 생성해주세요.
-    **결과는 오직 HTML 코드만 포함해야 하며, 다른 설명은 절대 추가하지 마세요.**
-
+    당신은 모든 정보를 종합하여 깔끔한 HTML 보고서를 만드는 전문가입니다. 아래 주어진 2가지 데이터(원본 데이터, 훈련 계획 텍스트)를 사용하여 하나의 완성된 HTML 리포트를 생성해주세요. **결과는 오직 HTML 코드만 포함해야 하며, 다른 설명은 절대 추가하지 마세요.**
     --- 1. 원본 데이터 ---
     {raw_data}
-
     --- 2. 훈련 계획 텍스트 ---
     {schedule_text}
-
     ---
-
     **지시사항:**
-
     1.  **로고 추가:** 리포트의 가장 처음에 로고 이미지를 추가하세요. 로고 HTML 코드는 다음과 같습니다. `<img src="/static/logo3.png" alt="Tufly Logo" style="width:150px; margin-bottom:20px; display:block; margin-left:auto; margin-right:auto;">`
-
-    2.  **검진 결과표 생성:** '1. 원본 데이터'를 파싱하여 `<table>` 형식의 HTML 표를 만드세요.
-        * 표의 제목은 `<h3>📊 검진 결과표</h3>` 입니다.
-        * 표의 헤더는 '항목', '이상적 상태', '현재 상태'입니다.
-
-    3.  **14일 훈련 계획표 생성:** '2. 훈련 계획 텍스트'의 내용을 14일짜리 `<table>` 형식의 HTML 표로 만드세요.
-        * 표의 제목은 `<h3>📅 14일 맞춤 훈련 계획</h3>` 입니다.
-        * 표의 헤더는 '일차', '훈련 내용'입니다.
-        * 제공된 훈련 계획이 7일 분량인 경우, 나머지 8~14일은 '휴식', '자유 훈련', '주간 점검' 등으로 채워서 14일짜리 표를 완성하세요.
+    2.  **검진 결과표 생성:** '1. 원본 데이터'를 파싱하여 `<table>` 형식의 HTML 표를 만드세요. 표의 제목은 `<h3>📊 검진 결과표</h3>` 입니다. 표의 헤더는 '항목', '이상적 상태', '현재 상태'입니다.
+    3.  **14일 훈련 계획표 생성:** '2. 훈련 계획 텍스트'의 내용을 14일짜리 `<table>` 형식의 HTML 표로 만드세요. 표의 제목은 `<h3>📅 14일 맞춤 훈련 계획</h3>` 입니다. 표의 헤더는 '일차', '훈련 내용'입니다. 제공된 훈련 계획이 7일 분량인 경우, 나머지 8~14일은 '휴식', '자유 훈련', '주간 점검' 등으로 채워서 14일짜리 표를 완성하세요.
     """
-    # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ '상세 분석' 제외 및 로고 추가 프롬프트 수정 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-    
     try:
         response = model.generate_content(prompt)
         clean_html = re.sub(r'```html\n|```', '', response.text)
