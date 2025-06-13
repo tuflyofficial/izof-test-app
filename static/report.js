@@ -3,40 +3,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pdfButton = document.getElementById('pdf-button');
     const loader = document.getElementById('final-report-loader');
 
-    // 1. 세션 스토리지에서 리포트 생성에 필요한 데이터 가져오기
     const reportDataString = sessionStorage.getItem('reportData');
-
     if (!reportDataString) {
         reportContent.innerHTML = '<p style="color: red;">리포트를 생성할 데이터가 없습니다. 이전 페이지로 돌아가 분석을 다시 시작해주세요.</p>';
         return;
     }
-
-    // 사용 후 즉시 데이터 삭제
     sessionStorage.removeItem('reportData');
 
     try {
         const reportData = JSON.parse(reportDataString);
 
-        // JS에서 직접 점수 계산 및 AI Insight 생성
+        // =================================================================
+        // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ JSON 데이터 형식을 처리하도록 수정한 로직 ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+        
         const highNeedItems = [];
-        const lines = reportData.raw_data.trim().split('\n');
         const midNeedItems = [];
+        let parsedInputData;
 
-        lines.forEach(line => {
-            const parts = line.trim().split(/\s+/);
-            if (parts.length >= 3) {
-                const itemName = parts.slice(0, parts.length - 2).join(' ');
-                const ideal = parseInt(parts[parts.length - 2], 10);
-                const current = parseInt(parts[parts.length - 1], 10);
+        // 입력 데이터가 JSON 형식인지 확인하고 파싱
+        try {
+            parsedInputData = JSON.parse(reportData.raw_data);
+            if (!Array.isArray(parsedInputData)) throw new Error("Input is not an array.");
+        } catch (e) {
+            // JSON 파싱 실패 시, 기존 텍스트 방식으로 처리 (하위 호환성)
+            console.error("Failed to parse input as JSON, falling back to text mode.", e);
+            parsedInputData = []; // 에러 시 빈 배열로 초기화
+            const lines = reportData.raw_data.trim().split('\n');
+            lines.forEach(line => {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length >= 3) {
+                    parsedInputData.push({
+                        title: parts.slice(0, parts.length - 2).join(' '),
+                        required_score: parts[parts.length - 2],
+                        current_score: parts[parts.length - 1]
+                    });
+                }
+            });
+        }
+        
+        // 파싱된 데이터를 기반으로 점수 계산
+        parsedInputData.forEach(item => {
+            const ideal = parseInt(item.required_score, 10);
+            const current = parseInt(item.current_score, 10);
+            const itemName = item.title;
 
-                if (!isNaN(ideal) && !isNaN(current)) {
-                    const score = ideal - current;
-                    if (score >= 3) {
-                        highNeedItems.push({ name: itemName, score: score });
-                    } 
-                    else if (score === 2) {
-                        midNeedItems.push({ name: itemName, score: score });
-                    }
+            if (!isNaN(ideal) && !isNaN(current)) {
+                const score = ideal - current;
+                if (score >= 3) {
+                    highNeedItems.push({ name: itemName, score: score });
+                } 
+                else if (score === 2) {
+                    midNeedItems.push({ name: itemName, score: score });
                 }
             }
         });
@@ -56,8 +73,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         else {
             aiInsightHtml = `<p>현재 모든 항목이 목표치에 근접해 있어, 심리적/신체적으로 매우 안정적인 최적 IZOF 상태에 있습니다. 현재 상태를 유지하며 꾸준히 훈련하는 것을 추천합니다.</p>`;
         }
-        
-        // 2. 서버에 최종 리포트(HTML) 요청
+        // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ JSON 데이터 형식을 처리하도록 수정한 로직 ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+        // =================================================================
+
         const response = await fetch('/summarize_all', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -79,7 +97,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         reportContent.innerHTML = `<p style="color: red;">리포트 생성에 실패했습니다: ${error.message}</p>`;
     }
 
-    // 4. PDF 저장 버튼에 프린트 기능 추가
     pdfButton.addEventListener('click', () => {
         window.print();
     });
