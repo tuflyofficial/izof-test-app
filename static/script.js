@@ -57,11 +57,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/generate_schedule', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ analysis_text: initialAnalysisResult }),
+                // ▼▼▼▼▼▼▼▼▼ 원본 데이터(raw_data)를 함께 전송하도록 수정 ▼▼▼▼▼▼▼▼▼
+                body: JSON.stringify({ 
+                    analysis_text: initialAnalysisResult,
+                    raw_data: dataInput.value 
+                }),
+                // ▲▲▲▲▲▲▲▲▲ 원본 데이터(raw_data)를 함께 전송하도록 수정 ▲▲▲▲▲▲▲▲▲
             });
             if (!response.ok) throw new Error((await response.json()).error || '서버 오류');
             const data = await response.json();
             scheduleResult = data.result;
+            // 링크가 클릭 가능하도록 .innerHTML 사용 (XSS 방지에 유의해야 하나, 이 경우는 서버에서 생성한 안전한 링크이므로 사용)
             scheduleOutput.innerHTML = scheduleResult.replace(/\n/g, '<br>');
             scheduleResultContainer.style.display = 'block';
             finalReportSection.classList.remove('hidden');
@@ -80,16 +86,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 리포트 생성에 필요한 데이터를 객체로 만듦
         const reportData = {
             raw_data: dataInput.value,
             schedule_text: scheduleResult
         };
 
-        // 데이터를 JSON 문자열로 변환하여 세션 스토리지에 저장
         sessionStorage.setItem('reportData', JSON.stringify(reportData));
-
-        // '/report' 경로를 새 탭으로 열기
         window.open('/report', '_blank');
     });
 });
